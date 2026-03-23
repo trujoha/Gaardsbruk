@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skog - Gaardsbruk</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f0f4e8; color: #333; min-height: 100vh; }
+        .header { background: #1b5e20; color: white; padding: 20px 24px 0 24px; text-align: center; }
+        .header h1 { font-size: 1.6em; }
+        .header p { font-size: 0.85em; opacity: 0.8; margin-top: 4px; }
+        .tab-bar { display: flex; gap: 0; margin-top: 16px; }
+        .tab-bar a {
+            flex: 1; text-align: center; padding: 12px 16px; text-decoration: none;
+            font-weight: 600; font-size: 0.95em; border-radius: 10px 10px 0 0;
+            transition: all 0.2s;
+        }
+        .tab-bar a.active { background: #f0f4e8; color: #1b5e20; }
+        .tab-bar a:not(.active) { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.85); }
+        .tab-bar a:not(.active):hover { background: rgba(255,255,255,0.25); }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .gaard-info { background: white; border-radius: 14px; padding: 18px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); text-align: center; }
+        .gaard-info h2 { color: #1b5e20; font-size: 1.1em; }
+        .gaard-info p { font-size: 0.85em; color: #888; }
+
+        .section-title { font-size: 0.8em; font-weight: 700; color: #1b5e20; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px 4px; }
+
+        .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+        .feature-kort {
+            background: white; border-radius: 14px; padding: 16px; text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s;
+            text-decoration: none; color: inherit; border-left: 4px solid #1b5e20;
+        }
+        .feature-kort:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .feature-kort .ikon { font-size: 1.8em; margin-bottom: 6px; }
+        .feature-kort .navn { font-weight: 700; font-size: 0.85em; margin-bottom: 2px; }
+        .feature-kort .desc { font-size: 0.72em; color: #888; }
+
+        .sjekkliste-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .sjekkliste-kort {
+            background: white; border-radius: 14px; padding: 20px; text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s;
+            text-decoration: none; color: inherit; border-left: 4px solid #1b5e20;
+        }
+        .sjekkliste-kort:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .sjekkliste-kort .ikon { font-size: 2em; margin-bottom: 8px; }
+        .sjekkliste-kort .navn { font-weight: 700; font-size: 0.9em; margin-bottom: 4px; }
+        .sjekkliste-kort .antall { font-size: 0.78em; color: #888; }
+
+        .historikk-link { display: block; text-align: center; margin-top: 10px; padding: 14px; background: white; border-radius: 14px; color: #1b5e20; font-weight: 600; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .historikk-link:hover { background: #1b5e20; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gaardsbruk</h1>
+        <p>Digital kvalitetsstyring for gardsbruk</p>
+        <div class="tab-bar">
+            <a href="/" class="tab">Gaardsbruk</a>
+            <a href="/skog" class="tab active">Skog</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="gaard-info">
+            <h2>Skogforvaltning</h2>
+            <p>Teiger, hogst, miljoregistrering og bestillingsportal</p>
+        </div>
+
+        <!-- Skogforvaltning -->
+        <div class="section-title">Skogforvaltning</div>
+        <div class="feature-grid">
+            <a href="/skog/teiger" class="feature-kort" style="border-left-color:#1b5e20;">
+                <div class="ikon">&#x1F332;</div>
+                <div class="navn">Skogteiger</div>
+                <div class="desc">Bestand og teigoversikt</div>
+            </a>
+            <a href="/skog/hogst" class="feature-kort" style="border-left-color:#5d4037;">
+                <div class="ikon">&#x1FAB5;</div>
+                <div class="navn">Hogstjournal</div>
+                <div class="desc">Avvirkning og salg</div>
+            </a>
+        </div>
+
+        <!-- Miljoe og sertifisering -->
+        <div class="section-title">Miljoe og sertifisering</div>
+        <div class="feature-grid">
+            <a href="/skog/miljo" class="feature-kort" style="border-left-color:#2e7d32;">
+                <div class="ikon">&#x1F3DE;&#xFE0F;</div>
+                <div class="navn">Miljoregistrering</div>
+                <div class="desc">Biotoper, kantsoner, kulturminner</div>
+            </a>
+            <a href="/sjekkliste/skog_pefc" class="sjekkliste-kort" style="border-left-color:#1b5e20;">
+                <div class="ikon">&#x1F332;</div>
+                <div class="navn">PEFC Sjekkliste</div>
+                <div class="antall">18 kontrollpunkter</div>
+            </a>
+        </div>
+
+        <!-- Bestillingsportal -->
+        <div class="section-title">Tjenester</div>
+        <a href="/skog/bestilling" class="historikk-link" style="background: #e8f5e9; color: #1b5e20; border-left: 4px solid #1b5e20; text-align: left; padding-left: 20px;">
+            <span style="font-size: 1.3em; margin-right: 8px;">&#x1F4E6;</span>
+            Bestillingsportal - Bestill skogtjenester
+        </a>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <span style="font-size: 0.85em; color: #888;">Innlogget som: {{ current_user.navn }}</span>
+            <a href="/logg-ut" style="margin-left: 12px; color: #c62828; font-size: 0.85em; font-weight: 600;">Logg ut</a>
+        </div>
+    </div>
+</body>
+</html>

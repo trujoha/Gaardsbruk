@@ -55,6 +55,10 @@
                 <input type="checkbox" id="ny-admin">
                 <label for="ny-admin" style="font-size: 0.9em;">Administrator</label>
             </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="ny-aktor">
+                <label for="ny-aktor" style="font-size: 0.9em;">Skogtjeneste-leverandor (aktor)</label>
+            </div>
             <button class="btn" onclick="opprettBruker()">Opprett bruker</button>
             <div id="status"></div>
         </div>
@@ -75,7 +79,8 @@
                 div.innerHTML = data.brukere.map(function(b) {
                     return '<div class="bruker-kort">' +
                         '<div class="bruker-info"><strong>' + b.brukernavn + '</strong> — ' + b.navn +
-                        (b.er_admin ? ' <span class="badge">Admin</span>' : '') + '</div>' +
+                        (b.er_admin ? ' <span class="badge">Admin</span>' : '') +
+                        (b.er_aktor ? ' <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Aktor</span>' : '') + '</div>' +
                         (b.brukernavn !== 'admin' ? '<button class="slett-btn" onclick="slettBruker(' + b.id + ')">Slett</button>' : '') +
                     '</div>';
                 }).join('');
@@ -92,6 +97,7 @@
                     navn: document.getElementById('ny-navn').value,
                     passord: document.getElementById('ny-passord').value,
                     er_admin: document.getElementById('ny-admin').checked,
+                    er_aktor: document.getElementById('ny-aktor').checked,
                 })
             }).then(r => r.json()).then(data => {
                 s.innerHTML = data.success

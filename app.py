@@ -36,6 +36,7 @@ class User(UserMixin, db.Model):
     passord_hash = db.Column(db.String(256), nullable=False)
     navn = db.Column(db.String(120), nullable=False)
     er_admin = db.Column(db.Boolean, default=False)
+    er_aktor = db.Column(db.Boolean, default=False)  # Tjenesteleverandor i skogbruk
     opprettet = db.Column(db.DateTime, default=datetime.now)
 
     def sett_passord(self, passord):
@@ -186,6 +187,80 @@ class Kjorebok(db.Model):
     opprettet = db.Column(db.DateTime, default=datetime.now)
 
 
+class SkogTeig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    navn = db.Column(db.String(200))
+    areal_daa = db.Column(db.Float, default=0)
+    bonitet = db.Column(db.String(20), default='')  # G11, G14, G17, G20, G23, G26
+    treslag = db.Column(db.String(100), default='')  # Gran, Furu, Bjork, Blandingsskog
+    hogstklasse = db.Column(db.String(10), default='')  # I, II, III, IV, V
+    volum_m3 = db.Column(db.Float, default=0)
+    notat = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class HogstJournal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    teig = db.Column(db.String(200))
+    hogsttype = db.Column(db.String(50))  # Sluttavvirkning, Tynning, Plukkhogst, Vindfallhogst
+    treslag = db.Column(db.String(100))
+    volum_m3 = db.Column(db.Float, default=0)
+    salgspris_m3 = db.Column(db.Float, default=0)
+    kjoeper = db.Column(db.String(200), default='')  # Viken Skog, AT Skog, Nortomber, etc.
+    fsc_pefc = db.Column(db.String(20), default='PEFC')
+    miljohensyn = db.Column(db.Text, default='')  # Nokkelbiotoper, kantsoner, etc.
+    notat = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class MiljoRegistrering(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    teig = db.Column(db.String(200))
+    type_registrering = db.Column(db.String(100))  # Nokkelbiotop, Kantsone, Kulturminne, Rovfuglreir, Tiurleik
+    beskrivelse = db.Column(db.Text, default='')
+    gps_koordinater = db.Column(db.String(100), default='')
+    tiltak = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class SkogTjeneste(db.Model):
+    """Tjenester som aktorer tilbyr"""
+    id = db.Column(db.Integer, primary_key=True)
+    aktor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    tjeneste_type = db.Column(db.String(50))  # planting, ungskogpleie, markberedning, hogst, veibygging, sprutearbeid
+    beskrivelse = db.Column(db.Text, default='')
+    pris_info = db.Column(db.String(200), default='')  # "Fra 2.50 kr/plante", "Pris etter avtale"
+    omrade = db.Column(db.String(200), default='')  # "Innlandet, Viken"
+    kapasitet = db.Column(db.String(200), default='')  # "50 000 planter/sesong"
+    sertifiseringer = db.Column(db.String(300), default='')  # "PEFC, Autorisert plantevernmiddel"
+    kontakt_tlf = db.Column(db.String(20), default='')
+    kontakt_epost = db.Column(db.String(100), default='')
+    aktiv = db.Column(db.Boolean, default=True)
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class SkogBestilling(db.Model):
+    """Bestillinger fra skogeiere"""
+    id = db.Column(db.Integer, primary_key=True)
+    bestiller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    tjeneste_id = db.Column(db.Integer, db.ForeignKey('skog_tjeneste.id'), nullable=True)
+    aktor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    tjeneste_type = db.Column(db.String(50))
+    beskrivelse = db.Column(db.Text, default='')
+    areal_daa = db.Column(db.Float, default=0)
+    onsket_periode = db.Column(db.String(100), default='')  # "Vaar 2026", "Juni-Juli 2026"
+    sted = db.Column(db.String(200), default='')
+    status = db.Column(db.String(20), default='ny')  # ny, akseptert, paagaar, fullfort, avvist
+    pris_avtalt = db.Column(db.Float, default=0)
+    notat = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
 # ============================================================================
 # SJEKKLISTE-DATA (fra KSL standarder)
 # ============================================================================
@@ -291,12 +366,43 @@ SJEKKLISTER = {
             {"id": "SV08", "kategori": "Miljoe", "tekst": "Er ammoniakknivaa akseptabelt?", "krav": "KSL svin"},
         ]
     },
+    "skog_pefc": {
+        "navn": "PEFC Skogsertifisering",
+        "ikon": "\U0001F332",
+        "farge": "#1b5e20",
+        "punkter": [
+            {"id": "PF01", "kategori": "Foryngelse", "tekst": "Er tilfredsstillende foryngelse etablert innen 3 aar etter hogst?", "krav": "PEFC krav 4"},
+            {"id": "PF02", "kategori": "Foryngelse", "tekst": "Er plantevalg tilpasset bonitet og klimasone?", "krav": "PEFC krav 4"},
+            {"id": "PF03", "kategori": "Foryngelse", "tekst": "Er det brukt godkjent plantemateriale med kjent proveniens?", "krav": "Skogfrooloven"},
+            {"id": "PF04", "kategori": "Miljoe", "tekst": "Er nokkelbiotoper kartlagt og ivaretatt?", "krav": "PEFC krav 12"},
+            {"id": "PF05", "kategori": "Miljoe", "tekst": "Er kantsoner mot vassdrag beholdt (min 10m)?", "krav": "PEFC krav 11"},
+            {"id": "PF06", "kategori": "Miljoe", "tekst": "Er det satt igjen minst 10 livsloepstraer per hektar?", "krav": "PEFC krav 17"},
+            {"id": "PF07", "kategori": "Miljoe", "tekst": "Er staaende og liggende doed ved beholdt?", "krav": "PEFC krav 16"},
+            {"id": "PF08", "kategori": "Miljoe", "tekst": "Er rovfuglreir, tiurleik og andre viktige omraader kartlagt?", "krav": "PEFC krav 14"},
+            {"id": "PF09", "kategori": "Kulturminner", "tekst": "Er kulturminner registrert og merket i terreng?", "krav": "PEFC krav 21, Kulturminneloven"},
+            {"id": "PF10", "kategori": "Kulturminner", "tekst": "Er det tatt hensyn til friluftsomraader og stier?", "krav": "PEFC krav 20"},
+            {"id": "PF11", "kategori": "Vei og drift", "tekst": "Er skogsbilveier vedlikeholdt uten uforsvarlig avrenning?", "krav": "PEFC krav 22"},
+            {"id": "PF12", "kategori": "Vei og drift", "tekst": "Er det brukt hogstmetoder tilpasset terreng og grunnforhold?", "krav": "PEFC krav 8"},
+            {"id": "PF13", "kategori": "Vei og drift", "tekst": "Er kjoereskader paa skogbunn begrenset?", "krav": "PEFC krav 9"},
+            {"id": "PF14", "kategori": "HMS", "tekst": "Har skogsarbeidere gyldig kompetansebevis for motorsag?", "krav": "Forskrift om utfoerelse av arbeid"},
+            {"id": "PF15", "kategori": "HMS", "tekst": "Er verneutstyr i bruk ved hogst (hjelm, bukse, stoevler)?", "krav": "AML, PEFC krav 25"},
+            {"id": "PF16", "kategori": "Dokumentasjon", "tekst": "Er hogstmelding sendt til kommunen?", "krav": "Skogbruksloven paragraf 11"},
+            {"id": "PF17", "kategori": "Dokumentasjon", "tekst": "Er skogbruksplan oppdatert etter hogst?", "krav": "PEFC krav 2"},
+            {"id": "PF18", "kategori": "Dokumentasjon", "tekst": "Er PEFC sporbarhetsdokumentasjon paa plass?", "krav": "PEFC CoC"},
+        ]
+    },
 }
 
 
 # Opprett tabeller
 with app.app_context():
     db.create_all()
+    # Migrer: legg til er_aktor kolonne hvis den mangler
+    try:
+        db.session.execute(db.text("ALTER TABLE user ADD COLUMN er_aktor BOOLEAN DEFAULT 0"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     if User.query.count() == 0:
         admin = User(brukernavn='admin', navn='Administrator', er_admin=True)
         admin.sett_passord('Gaardsbruk2026!')
@@ -374,7 +480,7 @@ def hent_brukere():
         return jsonify({"error": "Ingen tilgang"}), 403
     brukere = User.query.all()
     return jsonify({"success": True, "brukere": [
-        {"id": u.id, "brukernavn": u.brukernavn, "navn": u.navn, "er_admin": u.er_admin}
+        {"id": u.id, "brukernavn": u.brukernavn, "navn": u.navn, "er_admin": u.er_admin, "er_aktor": u.er_aktor}
         for u in brukere
     ]})
 
@@ -387,7 +493,7 @@ def opprett_bruker():
     data = request.get_json()
     if User.query.filter_by(brukernavn=data['brukernavn']).first():
         return jsonify({"success": False, "error": "Brukernavn finnes allerede"}), 400
-    u = User(brukernavn=data['brukernavn'], navn=data.get('navn', ''), er_admin=data.get('er_admin', False))
+    u = User(brukernavn=data['brukernavn'], navn=data.get('navn', ''), er_admin=data.get('er_admin', False), er_aktor=data.get('er_aktor', False))
     u.sett_passord(data['passord'])
     db.session.add(u)
     db.session.commit()
@@ -453,6 +559,40 @@ def oppsynslogg_side():
 @login_required
 def kjorebok_side():
     return render_template('kjorebok.html')
+
+
+# ============================================================================
+# SKOG-SIDER
+# ============================================================================
+
+@app.route('/skog')
+@login_required
+def skog_side():
+    return render_template('skog.html')
+
+
+@app.route('/skog/teiger')
+@login_required
+def skog_teiger_side():
+    return render_template('skog_teiger.html')
+
+
+@app.route('/skog/hogst')
+@login_required
+def skog_hogst_side():
+    return render_template('skog_hogst.html')
+
+
+@app.route('/skog/miljo')
+@login_required
+def skog_miljo_side():
+    return render_template('skog_miljo.html')
+
+
+@app.route('/skog/bestilling')
+@login_required
+def skog_bestilling_side():
+    return render_template('skog_bestilling.html')
 
 
 # ============================================================================
@@ -832,8 +972,244 @@ def kjorebok_oppsummering():
 
 
 # ============================================================================
+# SKOG API-er
+# ============================================================================
+
+# --- Teiger ---
+@app.route('/api/skog/teiger', methods=['GET'])
+@login_required
+def hent_teiger():
+    teiger = SkogTeig.query.order_by(SkogTeig.navn).all()
+    return jsonify({"success": True, "data": [{
+        "id": t.id, "navn": t.navn, "areal_daa": t.areal_daa, "bonitet": t.bonitet,
+        "treslag": t.treslag, "hogstklasse": t.hogstklasse, "volum_m3": t.volum_m3, "notat": t.notat
+    } for t in teiger]})
+
+
+@app.route('/api/skog/teiger', methods=['POST'])
+@login_required
+def ny_teig():
+    d = request.get_json()
+    t = SkogTeig(
+        navn=d.get('navn', ''), areal_daa=float(d.get('areal_daa', 0)),
+        bonitet=d.get('bonitet', ''), treslag=d.get('treslag', ''),
+        hogstklasse=d.get('hogstklasse', ''), volum_m3=float(d.get('volum_m3', 0)),
+        notat=d.get('notat', '')
+    )
+    db.session.add(t)
+    db.session.commit()
+    return jsonify({"success": True, "id": t.id})
+
+
+@app.route('/api/skog/teiger/<int:tid>', methods=['DELETE'])
+@login_required
+def slett_teig(tid):
+    t = SkogTeig.query.get(tid)
+    if not t:
+        return jsonify({"success": False}), 404
+    db.session.delete(t)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Hogst ---
+@app.route('/api/skog/hogst', methods=['GET'])
+@login_required
+def hent_hogst():
+    q = HogstJournal.query
+    fra = request.args.get('fra')
+    til = request.args.get('til')
+    if fra:
+        q = q.filter(HogstJournal.dato >= date.fromisoformat(fra))
+    if til:
+        q = q.filter(HogstJournal.dato <= date.fromisoformat(til))
+    oppf = q.order_by(HogstJournal.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "teig": o.teig, "hogsttype": o.hogsttype,
+        "treslag": o.treslag, "volum_m3": o.volum_m3, "salgspris_m3": o.salgspris_m3,
+        "kjoeper": o.kjoeper, "fsc_pefc": o.fsc_pefc, "miljohensyn": o.miljohensyn, "notat": o.notat
+    } for o in oppf]})
+
+
+@app.route('/api/skog/hogst', methods=['POST'])
+@login_required
+def ny_hogst():
+    d = request.get_json()
+    o = HogstJournal(
+        dato=date.fromisoformat(d['dato']), teig=d.get('teig', ''),
+        hogsttype=d.get('hogsttype', ''), treslag=d.get('treslag', ''),
+        volum_m3=float(d.get('volum_m3', 0)), salgspris_m3=float(d.get('salgspris_m3', 0)),
+        kjoeper=d.get('kjoeper', ''), fsc_pefc=d.get('fsc_pefc', 'PEFC'),
+        miljohensyn=d.get('miljohensyn', ''), notat=d.get('notat', '')
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/skog/hogst/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_hogst(oid):
+    o = HogstJournal.query.get(oid)
+    if not o:
+        return jsonify({"success": False}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Miljoregistrering ---
+@app.route('/api/skog/miljo', methods=['GET'])
+@login_required
+def hent_miljo():
+    oppf = MiljoRegistrering.query.order_by(MiljoRegistrering.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "teig": o.teig,
+        "type_registrering": o.type_registrering, "beskrivelse": o.beskrivelse,
+        "gps_koordinater": o.gps_koordinater, "tiltak": o.tiltak
+    } for o in oppf]})
+
+
+@app.route('/api/skog/miljo', methods=['POST'])
+@login_required
+def ny_miljo():
+    d = request.get_json()
+    o = MiljoRegistrering(
+        dato=date.fromisoformat(d['dato']), teig=d.get('teig', ''),
+        type_registrering=d.get('type_registrering', ''), beskrivelse=d.get('beskrivelse', ''),
+        gps_koordinater=d.get('gps_koordinater', ''), tiltak=d.get('tiltak', '')
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/skog/miljo/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_miljo(oid):
+    o = MiljoRegistrering.query.get(oid)
+    if not o:
+        return jsonify({"success": False}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Bestillingsportal ---
+@app.route('/api/skog/tjenester', methods=['GET'])
+@login_required
+def hent_tjenester():
+    tjeneste_type = request.args.get('type', '')
+    q = SkogTjeneste.query.filter_by(aktiv=True)
+    if tjeneste_type:
+        q = q.filter_by(tjeneste_type=tjeneste_type)
+    tjenester = q.order_by(SkogTjeneste.opprettet.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": t.id, "aktor_id": t.aktor_id,
+        "aktor_navn": User.query.get(t.aktor_id).navn if User.query.get(t.aktor_id) else 'Ukjent',
+        "tjeneste_type": t.tjeneste_type, "beskrivelse": t.beskrivelse,
+        "pris_info": t.pris_info, "omrade": t.omrade, "kapasitet": t.kapasitet,
+        "sertifiseringer": t.sertifiseringer, "kontakt_tlf": t.kontakt_tlf,
+        "kontakt_epost": t.kontakt_epost
+    } for t in tjenester]})
+
+
+@app.route('/api/skog/tjenester', methods=['POST'])
+@login_required
+def ny_tjeneste():
+    d = request.get_json()
+    t = SkogTjeneste(
+        aktor_id=current_user.id, tjeneste_type=d.get('tjeneste_type', ''),
+        beskrivelse=d.get('beskrivelse', ''), pris_info=d.get('pris_info', ''),
+        omrade=d.get('omrade', ''), kapasitet=d.get('kapasitet', ''),
+        sertifiseringer=d.get('sertifiseringer', ''),
+        kontakt_tlf=d.get('kontakt_tlf', ''), kontakt_epost=d.get('kontakt_epost', '')
+    )
+    db.session.add(t)
+    db.session.commit()
+    return jsonify({"success": True, "id": t.id})
+
+
+@app.route('/api/skog/tjenester/<int:tid>', methods=['DELETE'])
+@login_required
+def slett_tjeneste(tid):
+    t = SkogTjeneste.query.get(tid)
+    if not t or (t.aktor_id != current_user.id and not current_user.er_admin):
+        return jsonify({"success": False}), 403
+    db.session.delete(t)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route('/api/skog/bestillinger', methods=['GET'])
+@login_required
+def hent_bestillinger():
+    # Show user's own orders + orders for their services
+    q = SkogBestilling.query
+    if not current_user.er_admin:
+        q = q.filter(
+            db.or_(
+                SkogBestilling.bestiller_id == current_user.id,
+                SkogBestilling.aktor_id == current_user.id
+            )
+        )
+    bestillinger = q.order_by(SkogBestilling.opprettet.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": b.id, "bestiller_id": b.bestiller_id,
+        "bestiller_navn": User.query.get(b.bestiller_id).navn if User.query.get(b.bestiller_id) else 'Ukjent',
+        "aktor_id": b.aktor_id,
+        "aktor_navn": User.query.get(b.aktor_id).navn if User.query.get(b.aktor_id) else '',
+        "tjeneste_type": b.tjeneste_type, "beskrivelse": b.beskrivelse,
+        "areal_daa": b.areal_daa, "onsket_periode": b.onsket_periode,
+        "sted": b.sted, "status": b.status, "pris_avtalt": b.pris_avtalt,
+        "notat": b.notat, "dato": b.opprettet.strftime('%d.%m.%Y')
+    } for b in bestillinger]})
+
+
+@app.route('/api/skog/bestillinger', methods=['POST'])
+@login_required
+def ny_bestilling():
+    d = request.get_json()
+    b = SkogBestilling(
+        bestiller_id=current_user.id,
+        tjeneste_id=d.get('tjeneste_id'),
+        aktor_id=d.get('aktor_id'),
+        tjeneste_type=d.get('tjeneste_type', ''),
+        beskrivelse=d.get('beskrivelse', ''),
+        areal_daa=float(d.get('areal_daa', 0)),
+        onsket_periode=d.get('onsket_periode', ''),
+        sted=d.get('sted', ''),
+        notat=d.get('notat', '')
+    )
+    db.session.add(b)
+    db.session.commit()
+    return jsonify({"success": True, "id": b.id})
+
+
+@app.route('/api/skog/bestillinger/<int:bid>/status', methods=['POST'])
+@login_required
+def oppdater_bestilling_status(bid):
+    b = SkogBestilling.query.get(bid)
+    if not b:
+        return jsonify({"success": False}), 404
+    d = request.get_json()
+    b.status = d.get('status', b.status)
+    if d.get('pris_avtalt'):
+        b.pris_avtalt = float(d['pris_avtalt'])
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# ============================================================================
 # API
 # ============================================================================
+
+@app.route('/api/bruker/meg', methods=['GET'])
+@login_required
+def hent_meg():
+    return jsonify({"success": True, "id": current_user.id, "navn": current_user.navn,
+                    "er_admin": current_user.er_admin, "er_aktor": current_user.er_aktor})
+
 
 @app.route('/api/sjekklister', methods=['GET'])
 def hent_sjekklister():

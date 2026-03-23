@@ -8,9 +8,18 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f0f4e8; color: #333; min-height: 100vh; }
-        .header { background: #2e7d32; color: white; padding: 20px 24px; text-align: center; }
+        .header { background: #2e7d32; color: white; padding: 20px 24px 0 24px; text-align: center; }
         .header h1 { font-size: 1.6em; }
         .header p { font-size: 0.85em; opacity: 0.8; margin-top: 4px; }
+        .tab-bar { display: flex; gap: 0; margin-top: 16px; }
+        .tab-bar a {
+            flex: 1; text-align: center; padding: 12px 16px; text-decoration: none;
+            font-weight: 600; font-size: 0.95em; border-radius: 10px 10px 0 0;
+            transition: all 0.2s;
+        }
+        .tab-bar a.active { background: #f0f4e8; color: #2e7d32; }
+        .tab-bar a:not(.active) { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.85); }
+        .tab-bar a:not(.active):hover { background: rgba(255,255,255,0.25); }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .gaard-info { background: white; border-radius: 14px; padding: 18px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); text-align: center; }
         .gaard-info h2 { color: #2e7d32; font-size: 1.1em; }
@@ -48,6 +57,10 @@
     <div class="header">
         <h1>Gaardsbruk</h1>
         <p>Digital kvalitetsstyring for gardsbruk</p>
+        <div class="tab-bar">
+            <a href="/" class="tab active">Gaardsbruk</a>
+            <a href="/skog" class="tab">Skog</a>
+        </div>
     </div>
     <div class="container">
         <div class="gaard-info">
@@ -115,7 +128,7 @@
 
         <!-- Pitch -->
         <div class="section-title">Presentasjon</div>
-        <a href="/pitch" class="historikk-link" style="background: #e8f5e9; color: #2e7d32;">📊 Pitch-presentasjon</a>
+        <a href="/pitch" class="historikk-link" style="background: #e8f5e9; color: #2e7d32;">Pitch-presentasjon</a>
 
         {% if current_user.er_admin %}
         <a href="/admin" class="historikk-link" style="margin-top: 10px; background: #fff3e0; color: #e65100;">Administrasjon</a>
@@ -130,6 +143,7 @@
             var div = document.getElementById('sjekklister');
             var html = '';
             for (var key in data.sjekklister) {
+                if (key === 'skog_pefc') continue;
                 var s = data.sjekklister[key];
                 html += '<a href="/sjekkliste/' + key + '" class="sjekkliste-kort" style="border-left-color:' + s.farge + ';">' +
                     '<div class="ikon">' + s.ikon + '</div>' +
