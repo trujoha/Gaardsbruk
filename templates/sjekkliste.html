@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaardsbruk Sjekkliste</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f0f4e8; color: #333; }
+        .header { background: #2e7d32; color: white; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+        .header a { color: #a5d6a7; text-decoration: none; font-size: 1.3em; }
+        .header h1 { font-size: 1.2em; }
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+        .progress-bar { background: #e0e0e0; border-radius: 10px; height: 8px; margin-bottom: 16px; overflow: hidden; }
+        .progress-inner { height: 100%; background: #2e7d32; border-radius: 10px; transition: width 0.3s; }
+        .progress-text { font-size: 0.8em; color: #888; text-align: center; margin-bottom: 12px; }
+        .kategori-header { font-size: 0.82em; font-weight: 700; color: #2e7d32; padding: 10px 0 6px 0; border-bottom: 1px solid #ddd; margin-top: 12px; }
+        .punkt {
+            background: white; border-radius: 12px; padding: 16px; margin-bottom: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.04); transition: all 0.2s;
+        }
+        .punkt.besvart-ok { border-left: 4px solid #2e7d32; }
+        .punkt.besvart-avvik { border-left: 4px solid #c62828; }
+        .punkt.besvart-ir { border-left: 4px solid #9e9e9e; }
+        .punkt-tekst { font-size: 0.92em; margin-bottom: 6px; line-height: 1.4; }
+        .punkt-krav { font-size: 0.75em; color: #999; margin-bottom: 10px; }
+        .svar-knapper { display: flex; gap: 6px; }
+        .svar-btn {
+            flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px;
+            background: white; cursor: pointer; font-weight: 600; font-size: 0.85em;
+            font-family: inherit; transition: all 0.2s; text-align: center;
+        }
+        .svar-btn:hover { transform: scale(1.02); }
+        .svar-btn.ok-valgt { background: #2e7d32; color: white; border-color: #2e7d32; }
+        .svar-btn.avvik-valgt { background: #c62828; color: white; border-color: #c62828; }
+        .svar-btn.ir-valgt { background: #9e9e9e; color: white; border-color: #9e9e9e; }
+        .kommentar-felt { display: none; margin-top: 10px; }
+        .kommentar-felt.vis { display: block; }
+        .kommentar-felt textarea {
+            width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px;
+            font-family: inherit; font-size: 0.85em; resize: vertical; min-height: 60px;
+        }
+        .kommentar-felt textarea:focus { outline: none; border-color: #2e7d32; }
+        .bilde-btn { margin-top: 8px; padding: 8px 14px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 0.8em; }
+        .fullfoor-panel {
+            position: fixed; bottom: 0; left: 0; right: 0; background: white;
+            padding: 14px 20px; box-shadow: 0 -2px 12px rgba(0,0,0,0.1);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .fullfoor-btn {
+            background: #2e7d32; color: white; border: none; padding: 12px 24px;
+            border-radius: 10px; font-weight: 700; font-size: 1em; cursor: pointer; font-family: inherit;
+        }
+        .fullfoor-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .teller { font-size: 0.85em; color: #666; }
+        .signatur-panel { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .signatur-panel.vis { display: flex; }
+        .signatur-boks { background: white; border-radius: 16px; padding: 24px; max-width: 400px; width: 90%; }
+        .signatur-boks h3 { color: #2e7d32; margin-bottom: 16px; }
+        .signatur-boks input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1em; margin-bottom: 12px; font-family: inherit; }
+        .signatur-boks input:focus { outline: none; border-color: #2e7d32; }
+        .resultat-panel { display: none; text-align: center; padding: 40px 20px; }
+        .resultat-panel.vis { display: block; }
+        .resultat-tall { font-size: 2.5em; font-weight: 700; }
+        body { padding-bottom: 80px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/">←</a>
+        <h1 id="header-tittel">Sjekkliste</h1>
+    </div>
+    <div class="container">
+        <div class="progress-bar"><div class="progress-inner" id="progress" style="width: 0%;"></div></div>
+        <div class="progress-text" id="progress-text">0 av 0 besvart</div>
+        <div id="punkter"></div>
+    </div>
+
+    <!-- Fullfoor-panel -->
+    <div class="fullfoor-panel" id="fullfoor-panel">
+        <div class="teller"><span id="ok-teller">0</span> OK | <span id="avvik-teller" style="color:#c62828;">0</span> Avvik | <span id="ir-teller" style="color:#999;">0</span> IR</div>
+        <button class="fullfoor-btn" id="fullfoor-btn" onclick="visSignatur()" disabled>Fullfoor og signer</button>
+    </div>
+
+    <!-- Signatur modal -->
+    <div class="signatur-panel" id="signatur-panel">
+        <div class="signatur-boks">
+            <h3>Signer revisjon</h3>
+            <p style="font-size:0.9em; color:#666; margin-bottom:16px;">Jeg bekrefter at sjekklisten er korrekt utfylt.</p>
+            <input type="text" id="signatur-navn" placeholder="Ditt navn">
+            <div style="display:flex; gap:8px;">
+                <button onclick="lukkSignatur()" style="flex:1; padding:12px; border:2px solid #ddd; border-radius:10px; background:white; cursor:pointer; font-family:inherit; font-weight:600;">Avbryt</button>
+                <button onclick="fullfoor()" style="flex:1; padding:12px; border:none; border-radius:10px; background:#2e7d32; color:white; cursor:pointer; font-family:inherit; font-weight:700;">Signer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultat -->
+    <div class="resultat-panel" id="resultat-panel">
+        <div style="font-size:3em; margin-bottom:16px;">✅</div>
+        <h2 style="color:#2e7d32; margin-bottom:20px;">Revisjon fullfoert!</h2>
+        <div style="display:flex; gap:16px; justify-content:center; margin-bottom:24px;">
+            <div><div class="resultat-tall" style="color:#2e7d32;" id="res-ok">0</div><div style="font-size:0.85em; color:#888;">OK</div></div>
+            <div><div class="resultat-tall" style="color:#c62828;" id="res-avvik">0</div><div style="font-size:0.85em; color:#888;">Avvik</div></div>
+            <div><div class="resultat-tall" style="color:#999;" id="res-ir">0</div><div style="font-size:0.85em; color:#888;">Ikke relevant</div></div>
+        </div>
+        <a href="/" style="display:inline-block; padding:14px 28px; background:#2e7d32; color:white; border-radius:10px; text-decoration:none; font-weight:700;">Tilbake til forsiden</a>
+    </div>
+
+    <script>
+        var TYPE = '{{ sjekkliste_type }}';
+        var revisjonId = null;
+        var svar = {};
+        var punkter = [];
+
+        window.addEventListener('load', function() {
+            // Start revisjon
+            fetch('/api/revisjon/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ sjekkliste_type: TYPE })
+            }).then(r => r.json()).then(data => {
+                revisjonId = data.revisjon_id;
+            });
+
+            // Hent sjekkliste
+            fetch('/api/sjekkliste/' + TYPE).then(r => r.json()).then(data => {
+                var sl = data.sjekkliste;
+                document.getElementById('header-tittel').textContent = sl.ikon + ' ' + sl.navn;
+                punkter = sl.punkter;
+                renderPunkter(sl.punkter);
+            });
+        });
+
+        function renderPunkter(pkt) {
+            var div = document.getElementById('punkter');
+            var html = '';
+            var sisteKategori = '';
+
+            pkt.forEach(function(p) {
+                if (p.kategori !== sisteKategori) {
+                    html += '<div class="kategori-header">' + p.kategori.toUpperCase() + '</div>';
+                    sisteKategori = p.kategori;
+                }
+
+                var valgt = svar[p.id] || '';
+                var besvartClass = valgt === 'ok' ? 'besvart-ok' : valgt === 'avvik' ? 'besvart-avvik' : valgt === 'ir' ? 'besvart-ir' : '';
+
+                html += '<div class="punkt ' + besvartClass + '" id="punkt-' + p.id + '">' +
+                    '<div class="punkt-tekst">' + p.tekst + '</div>' +
+                    '<div class="punkt-krav">Krav: ' + p.krav + '</div>' +
+                    '<div class="svar-knapper">' +
+                        '<button class="svar-btn ' + (valgt === 'ok' ? 'ok-valgt' : '') + '" onclick="velgSvar(\'' + p.id + '\', \'ok\')">✓ OK</button>' +
+                        '<button class="svar-btn ' + (valgt === 'avvik' ? 'avvik-valgt' : '') + '" onclick="velgSvar(\'' + p.id + '\', \'avvik\')">✗ Avvik</button>' +
+                        '<button class="svar-btn ' + (valgt === 'ir' ? 'ir-valgt' : '') + '" onclick="velgSvar(\'' + p.id + '\', \'ir\')">— IR</button>' +
+                    '</div>' +
+                    '<div class="kommentar-felt ' + (valgt === 'avvik' ? 'vis' : '') + '" id="kommentar-' + p.id + '">' +
+                        '<textarea placeholder="Beskriv avviket..." onblur="lagreKommentar(\'' + p.id + '\', this.value)">' + (svar[p.id + '_kommentar'] || '') + '</textarea>' +
+                        '<label class="bilde-btn">📷 Ta bilde <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="lastOppBilde(\'' + p.id + '\', this)"></label>' +
+                    '</div>' +
+                '</div>';
+            });
+            div.innerHTML = html;
+            oppdaterTellere();
+        }
+
+        function velgSvar(punktId, val) {
+            svar[punktId] = val;
+
+            // Lagre til backend
+            fetch('/api/revisjon/' + revisjonId + '/svar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ punkt_id: punktId, svar: val, kommentar: svar[punktId + '_kommentar'] || '' })
+            });
+
+            // Vis/skjul kommentarfelt
+            var kommentar = document.getElementById('kommentar-' + punktId);
+            if (val === 'avvik') {
+                kommentar.classList.add('vis');
+            } else {
+                kommentar.classList.remove('vis');
+            }
+
+            // Oppdater styling
+            var punkt = document.getElementById('punkt-' + punktId);
+            punkt.className = 'punkt besvart-' + val;
+
+            // Oppdater knapper
+            var knapper = punkt.querySelectorAll('.svar-btn');
+            knapper.forEach(function(btn) { btn.className = 'svar-btn'; });
+            if (val === 'ok') knapper[0].classList.add('ok-valgt');
+            if (val === 'avvik') knapper[1].classList.add('avvik-valgt');
+            if (val === 'ir') knapper[2].classList.add('ir-valgt');
+
+            oppdaterTellere();
+        }
+
+        function lagreKommentar(punktId, tekst) {
+            svar[punktId + '_kommentar'] = tekst;
+            fetch('/api/revisjon/' + revisjonId + '/svar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ punkt_id: punktId, svar: svar[punktId] || 'avvik', kommentar: tekst })
+            });
+        }
+
+        function lastOppBilde(punktId, input) {
+            var fil = input.files[0];
+            if (!fil) return;
+            var formData = new FormData();
+            formData.append('bilde', fil);
+            formData.append('revisjon_id', revisjonId);
+            formData.append('punkt_id', punktId);
+            fetch('/api/bilde/last-opp', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(function(data) {
+                    if (data.success) {
+                        input.parentElement.innerHTML = '📷 Bilde lastet opp ✓';
+                    }
+                });
+        }
+
+        function oppdaterTellere() {
+            var ok = 0, avvik = 0, ir = 0, besvart = 0;
+            punkter.forEach(function(p) {
+                if (svar[p.id]) {
+                    besvart++;
+                    if (svar[p.id] === 'ok') ok++;
+                    if (svar[p.id] === 'avvik') avvik++;
+                    if (svar[p.id] === 'ir') ir++;
+                }
+            });
+            document.getElementById('ok-teller').textContent = ok;
+            document.getElementById('avvik-teller').textContent = avvik;
+            document.getElementById('ir-teller').textContent = ir;
+            document.getElementById('progress-text').textContent = besvart + ' av ' + punkter.length + ' besvart';
+            document.getElementById('progress').style.width = (besvart / punkter.length * 100) + '%';
+            document.getElementById('fullfoor-btn').disabled = (besvart < punkter.length);
+        }
+
+        function visSignatur() {
+            document.getElementById('signatur-panel').classList.add('vis');
+        }
+
+        function lukkSignatur() {
+            document.getElementById('signatur-panel').classList.remove('vis');
+        }
+
+        function fullfoor() {
+            var navn = document.getElementById('signatur-navn').value;
+            if (!navn) { alert('Skriv inn navnet ditt'); return; }
+
+            fetch('/api/revisjon/' + revisjonId + '/fullfoor', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ signert_av: navn })
+            }).then(r => r.json()).then(function(data) {
+                document.getElementById('signatur-panel').classList.remove('vis');
+                document.getElementById('fullfoor-panel').style.display = 'none';
+                document.querySelector('.container').style.display = 'none';
+
+                document.getElementById('res-ok').textContent = data.ok;
+                document.getElementById('res-avvik').textContent = data.avvik;
+                document.getElementById('res-ir').textContent = data.ir;
+                document.getElementById('resultat-panel').classList.add('vis');
+            });
+        }
+    </script>
+</body>
+</html>

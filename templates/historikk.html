@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaardsbruk Historikk</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f0f4e8; color: #333; }
+        .header { background: #2e7d32; color: white; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+        .header a { color: #a5d6a7; text-decoration: none; font-size: 1.3em; }
+        .header h1 { font-size: 1.2em; }
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+        .revisjon-kort {
+            background: white; border-radius: 12px; padding: 16px; margin-bottom: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center;
+        }
+        .revisjon-kort.fullfort { border-left: 4px solid #2e7d32; }
+        .revisjon-kort.paagaar { border-left: 4px solid #f9a825; }
+        .revisjon-navn { font-weight: 700; font-size: 0.95em; }
+        .revisjon-dato { font-size: 0.8em; color: #888; }
+        .revisjon-teller { text-align: right; font-size: 0.82em; }
+        .revisjon-teller .ok { color: #2e7d32; font-weight: 600; }
+        .revisjon-teller .avvik { color: #c62828; font-weight: 600; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.72em; font-weight: 600; }
+        .badge-ok { background: #e8f5e9; color: #2e7d32; }
+        .badge-paa { background: #fff3e0; color: #e65100; }
+        .empty { text-align: center; color: #999; padding: 40px; font-size: 0.95em; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/">←</a>
+        <h1>📋 Revisjonshistorikk</h1>
+    </div>
+    <div class="container">
+        <div id="revisjoner"></div>
+    </div>
+    <script>
+        fetch('/api/revisjoner').then(r => r.json()).then(data => {
+            var div = document.getElementById('revisjoner');
+            var rev = data.revisjoner || [];
+            if (rev.length === 0) {
+                div.innerHTML = '<div class="empty">Ingen revisjoner gjennomfoert ennaa.<br><br><a href="/" style="color:#2e7d32;">Start en sjekkliste</a></div>';
+                return;
+            }
+            div.innerHTML = rev.map(function(r) {
+                var badge = r.status === 'fullfort' ? '<span class="badge badge-ok">Fullfoert</span>' : '<span class="badge badge-paa">Paagaar</span>';
+                return '<div class="revisjon-kort ' + r.status + '">' +
+                    '<div>' +
+                        '<div class="revisjon-navn">' + r.sjekkliste_navn + ' ' + badge + '</div>' +
+                        '<div class="revisjon-dato">' + r.dato + (r.signert_av ? ' | Signert: ' + r.signert_av : '') + '</div>' +
+                    '</div>' +
+                    '<div class="revisjon-teller">' +
+                        '<span class="ok">' + r.antall_ok + ' OK</span><br>' +
+                        '<span class="avvik">' + r.antall_avvik + ' Avvik</span>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        });
+    </script>
+</body>
+</html>
