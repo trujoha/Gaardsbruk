@@ -353,6 +353,11 @@ def historikk_side():
     return render_template('historikk.html')
 
 
+@app.route('/pitch')
+def pitch_side():
+    return render_template('pitch.html')
+
+
 @app.route('/admin')
 @login_required
 def admin_side():
