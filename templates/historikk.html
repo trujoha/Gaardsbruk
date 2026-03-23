@@ -54,7 +54,8 @@
                     '</div>' +
                     '<div class="revisjon-teller">' +
                         '<span class="ok">' + r.antall_ok + ' OK</span><br>' +
-                        '<span class="avvik">' + r.antall_avvik + ' Avvik</span>' +
+                        '<span class="avvik">' + r.antall_avvik + ' Avvik</span><br>' +
+                        (r.status === 'fullfort' ? '<a href="/api/revisjon/' + r.id + '/pdf" style="font-size:0.85em; color:#2e7d32; font-weight:600;">Last ned PDF</a>' : '') +
                     '</div>' +
                 '</div>';
             }).join('');

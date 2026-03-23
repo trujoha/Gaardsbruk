@@ -424,5 +424,157 @@ def last_opp_bilde():
     return jsonify({"success": True, "sti": sti})
 
 
+# ============================================================================
+# PDF RAPPORT
+# ============================================================================
+
+@app.route('/api/revisjon/<int:rev_id>/pdf', methods=['GET'])
+@login_required
+def generer_revisjon_pdf(rev_id):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.enums import TA_CENTER
+    from io import BytesIO
+
+    rev = Revisjon.query.get(rev_id)
+    if not rev:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+
+    gaard = Gaard.query.get(rev.gaard_id)
+    sl = SJEKKLISTER.get(rev.sjekkliste_type, {})
+    svar_liste = SjekklisteSvar.query.filter_by(revisjon_id=rev_id).all()
+    svar_map = {s.punkt_id: s for s in svar_liste}
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm,
+                           topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+
+    styles.add(ParagraphStyle('Logo', parent=styles['Heading1'], fontSize=24,
+        textColor=colors.HexColor('#2e7d32'), alignment=TA_CENTER, spaceAfter=4))
+    styles.add(ParagraphStyle('LogoSub', parent=styles['Normal'], fontSize=10,
+        textColor=colors.HexColor('#666666'), alignment=TA_CENTER, spaceAfter=20))
+    styles.add(ParagraphStyle('SectionH', parent=styles['Heading2'], fontSize=13,
+        textColor=colors.HexColor('#2e7d32'), spaceBefore=14, spaceAfter=6))
+    styles.add(ParagraphStyle('Body', parent=styles['Normal'], fontSize=9, leading=12))
+    styles.add(ParagraphStyle('Small', parent=styles['Normal'], fontSize=7,
+        textColor=colors.HexColor('#999999')))
+
+    story = []
+
+    # Logo
+    story.append(Paragraph("Gaardsbruk", styles['Logo']))
+    story.append(Paragraph("Digital kvalitetsstyring for gardsbruk", styles['LogoSub']))
+    story.append(Spacer(1, 0.5*cm))
+
+    # Tittel
+    story.append(Paragraph(f"REVISJONSRAPPORT: {sl.get('navn', rev.sjekkliste_type)}", styles['SectionH']))
+    story.append(Spacer(1, 0.3*cm))
+
+    # Prosjektinfo
+    info_data = [
+        ['Gaard:', gaard.navn if gaard else 'Ukjent'],
+        ['Adresse:', gaard.adresse if gaard else ''],
+        ['Org.nr:', gaard.org_nr if gaard else ''],
+        ['Sjekkliste:', sl.get('navn', '')],
+        ['Dato:', rev.opprettet.strftime('%d.%m.%Y %H:%M') if rev.opprettet else ''],
+        ['Signert av:', rev.signert_av or 'Ikke signert'],
+        ['Status:', 'Fullfoert' if rev.status == 'fullfort' else 'Paagaar'],
+    ]
+    t = Table(info_data, colWidths=[4*cm, 12*cm])
+    t.setStyle(TableStyle([
+        ('FONT', (0,0), (0,-1), 'Helvetica-Bold', 9),
+        ('FONT', (1,0), (1,-1), 'Helvetica', 9),
+        ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#2e7d32')),
+        ('LINEBELOW', (0,0), (-1,-1), 0.3, colors.HexColor('#e0e0e0')),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 0.5*cm))
+
+    # Oppsummering
+    story.append(Paragraph("OPPSUMMERING", styles['SectionH']))
+    opps_data = [
+        ['Status', 'Antall'],
+        ['OK', str(rev.antall_ok)],
+        ['Avvik', str(rev.antall_avvik)],
+        ['Ikke relevant', str(rev.antall_ir)],
+        ['Totalt', str(rev.antall_ok + rev.antall_avvik + rev.antall_ir)],
+    ]
+    t2 = Table(opps_data, colWidths=[8*cm, 4*cm])
+    t2.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2e7d32')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 9),
+        ('BACKGROUND', (0,1), (-1,1), colors.HexColor('#e8f5e9')),
+        ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#ffebee')),
+        ('BACKGROUND', (0,3), (-1,3), colors.HexColor('#f5f5f5')),
+        ('FONT', (0,1), (-1,-1), 'Helvetica', 9),
+        ('GRID', (0,0), (-1,-1), 0.3, colors.HexColor('#c0c8d0')),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(t2)
+    story.append(Spacer(1, 0.5*cm))
+
+    # Detaljerte svar
+    story.append(Paragraph("DETALJERTE SVAR", styles['SectionH']))
+    for punkt in sl.get('punkter', []):
+        svar = svar_map.get(punkt['id'])
+        svar_tekst = svar.svar.upper() if svar else 'IKKE BESVART'
+        kommentar = svar.kommentar if svar and svar.kommentar else ''
+
+        if svar_tekst == 'OK':
+            svar_farge = colors.HexColor('#2e7d32')
+        elif svar_tekst == 'AVVIK':
+            svar_farge = colors.HexColor('#c62828')
+        else:
+            svar_farge = colors.HexColor('#999999')
+
+        rad = [[
+            Paragraph(f"<b>{punkt['id']}</b>", styles['Body']),
+            Paragraph(punkt['tekst'], styles['Body']),
+            Paragraph(f"<b><font color='{svar_farge.hexval()}'>{svar_tekst}</font></b>", styles['Body']),
+        ]]
+        t3 = Table(rad, colWidths=[1.5*cm, 11*cm, 3.5*cm])
+        t3.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LINEBELOW', (0,0), (-1,-1), 0.3, colors.HexColor('#eeeeee')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(t3)
+
+        if kommentar:
+            story.append(Paragraph(f"<i>Kommentar: {kommentar}</i>", ParagraphStyle(
+                'Kommentar', parent=styles['Body'], fontSize=8, textColor=colors.HexColor('#c62828'),
+                leftIndent=1.5*cm, spaceAfter=4)))
+
+    # Signatur
+    story.append(Spacer(1, 1*cm))
+    if rev.signert_av:
+        story.append(Paragraph(
+            f"<b>Signert av:</b> {rev.signert_av} | "
+            f"<b>Dato:</b> {rev.signert_dato.strftime('%d.%m.%Y %H:%M') if rev.signert_dato else ''}",
+            styles['Body']))
+
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph(
+        "Denne rapporten er generert av Gaardsbruk - Digital kvalitetsstyring for gardsbruk.",
+        styles['Small']))
+
+    doc.build(story)
+    buf.seek(0)
+
+    return send_file(
+        buf, mimetype='application/pdf', as_attachment=True,
+        download_name=f"Revisjon_{rev.sjekkliste_type}_{rev.opprettet.strftime('%Y%m%d') if rev.opprettet else ''}.pdf"
+    )
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5002)

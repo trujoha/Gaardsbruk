@@ -105,7 +105,9 @@
             <div><div class="resultat-tall" style="color:#c62828;" id="res-avvik">0</div><div style="font-size:0.85em; color:#888;">Avvik</div></div>
             <div><div class="resultat-tall" style="color:#999;" id="res-ir">0</div><div style="font-size:0.85em; color:#888;">Ikke relevant</div></div>
         </div>
-        <a href="/" style="display:inline-block; padding:14px 28px; background:#2e7d32; color:white; border-radius:10px; text-decoration:none; font-weight:700;">Tilbake til forsiden</a>
+        <a id="pdf-link" href="#" style="display:inline-block; padding:14px 28px; background:#2e7d32; color:white; border-radius:10px; text-decoration:none; font-weight:700; margin-bottom:12px;">Last ned PDF-rapport</a>
+        <br>
+        <a href="/" style="display:inline-block; padding:14px 28px; background:white; color:#2e7d32; border:2px solid #2e7d32; border-radius:10px; text-decoration:none; font-weight:700;">Tilbake til forsiden</a>
     </div>
 
     <script>
@@ -264,6 +266,7 @@
                 document.getElementById('res-ok').textContent = data.ok;
                 document.getElementById('res-avvik').textContent = data.avvik;
                 document.getElementById('res-ir').textContent = data.ir;
+                document.getElementById('pdf-link').href = '/api/revisjon/' + revisjonId + '/pdf';
                 document.getElementById('resultat-panel').classList.add('vis');
             });
         }
