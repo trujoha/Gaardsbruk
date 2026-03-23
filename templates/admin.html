@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaardsbruk Admin</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f0f4e8; color: #333; }
+        .header { background: #2e7d32; color: white; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+        .header a { color: #a5d6a7; text-decoration: none; font-size: 1.3em; }
+        .header h1 { font-size: 1.2em; }
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+        .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 16px; }
+        .card h2 { color: #2e7d32; font-size: 1.1em; margin-bottom: 16px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.9em; }
+        .form-input { width: 100%; padding: 10px; border: 2px solid #c8e6c9; border-radius: 10px; font-family: inherit; font-size: 0.95em; background: #f1f8e9; }
+        .form-input:focus { outline: none; border-color: #2e7d32; background: white; }
+        .btn { background: #2e7d32; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-family: inherit; width: 100%; font-size: 0.95em; }
+        .btn:hover { background: #1b5e20; }
+        .bruker-kort { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+        .bruker-kort:last-child { border-bottom: none; }
+        .bruker-info { font-size: 0.9em; }
+        .bruker-info strong { color: #2e7d32; }
+        .slett-btn { background: #c62828; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: 600; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72em; font-weight: 600; background: #fff3e0; color: #e65100; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .checkbox-group input { width: 18px; height: 18px; accent-color: #2e7d32; }
+        #status { margin-top: 10px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/">←</a>
+        <h1>⚙️ Administrasjon</h1>
+    </div>
+    <div class="container">
+        <div class="card">
+            <h2>Opprett ny bruker</h2>
+            <div class="form-group">
+                <label>Brukernavn</label>
+                <input type="text" class="form-input" id="ny-brukernavn" placeholder="brukernavn">
+            </div>
+            <div class="form-group">
+                <label>Fullt navn</label>
+                <input type="text" class="form-input" id="ny-navn" placeholder="Ola Nordmann">
+            </div>
+            <div class="form-group">
+                <label>Passord</label>
+                <input type="text" class="form-input" id="ny-passord" placeholder="Passord">
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="ny-admin">
+                <label for="ny-admin" style="font-size: 0.9em;">Administrator</label>
+            </div>
+            <button class="btn" onclick="opprettBruker()">Opprett bruker</button>
+            <div id="status"></div>
+        </div>
+
+        <div class="card">
+            <h2>Brukere</h2>
+            <div id="bruker-liste"></div>
+        </div>
+    </div>
+    <script>
+        function lastBrukere() {
+            fetch('/api/admin/brukere').then(r => r.json()).then(data => {
+                var div = document.getElementById('bruker-liste');
+                if (!data.brukere || data.brukere.length === 0) {
+                    div.innerHTML = '<p style="color:#999;">Ingen brukere.</p>';
+                    return;
+                }
+                div.innerHTML = data.brukere.map(function(b) {
+                    return '<div class="bruker-kort">' +
+                        '<div class="bruker-info"><strong>' + b.brukernavn + '</strong> — ' + b.navn +
+                        (b.er_admin ? ' <span class="badge">Admin</span>' : '') + '</div>' +
+                        (b.brukernavn !== 'admin' ? '<button class="slett-btn" onclick="slettBruker(' + b.id + ')">Slett</button>' : '') +
+                    '</div>';
+                }).join('');
+            });
+        }
+
+        function opprettBruker() {
+            var s = document.getElementById('status');
+            fetch('/api/admin/bruker', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    brukernavn: document.getElementById('ny-brukernavn').value,
+                    navn: document.getElementById('ny-navn').value,
+                    passord: document.getElementById('ny-passord').value,
+                    er_admin: document.getElementById('ny-admin').checked,
+                })
+            }).then(r => r.json()).then(data => {
+                s.innerHTML = data.success
+                    ? '<span style="color:#2e7d32;">' + data.message + '</span>'
+                    : '<span style="color:#c62828;">' + data.error + '</span>';
+                if (data.success) {
+                    document.getElementById('ny-brukernavn').value = '';
+                    document.getElementById('ny-navn').value = '';
+                    document.getElementById('ny-passord').value = '';
+                    lastBrukere();
+                }
+            });
+        }
+
+        function slettBruker(id) {
+            if (!confirm('Slette denne brukeren?')) return;
+            fetch('/api/admin/bruker/' + id, { method: 'DELETE' }).then(() => lastBrukere());
+        }
+
+        lastBrukere();
+    </script>
+</body>
+</html>

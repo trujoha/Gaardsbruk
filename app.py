@@ -2,25 +2,50 @@
 # KSL Digital - Digitale sjekklister for kvalitetsstyring i landbruket
 # ============================================================================
 
-from flask import Flask, render_template, jsonify, request, send_file
+from flask import Flask, render_template, jsonify, request, send_file, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import json
 import os
 import uuid
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'ksl-digital-dev'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ksl_digital.db'
+app.config['SECRET_KEY'] = 'gaardsbruk-prod-key-2026'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gaardsbruk.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB bilder
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 
 # ============================================================================
 # DATABASE
 # ============================================================================
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    brukernavn = db.Column(db.String(80), unique=True, nullable=False)
+    passord_hash = db.Column(db.String(256), nullable=False)
+    navn = db.Column(db.String(120), nullable=False)
+    er_admin = db.Column(db.Boolean, default=False)
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+    def sett_passord(self, passord):
+        self.passord_hash = generate_password_hash(passord)
+
+    def sjekk_passord(self, passord):
+        return check_password_hash(self.passord_hash, passord)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 class Gaard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -165,6 +190,11 @@ SJEKKLISTER = {
 # Opprett tabeller
 with app.app_context():
     db.create_all()
+    if User.query.count() == 0:
+        admin = User(brukernavn='admin', navn='Administrator', er_admin=True)
+        admin.sett_passord('Gaardsbruk2026!')
+        db.session.add(admin)
+        db.session.commit()
     if Gaard.query.count() == 0:
         demo = Gaard(navn='Demo Gaard', org_nr='999888777', adresse='Gardsvegen 1, 2390 Moelv',
                      produksjoner=json.dumps(['melk', 'plante']))
@@ -176,19 +206,94 @@ with app.app_context():
 # SIDER
 # ============================================================================
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        brukernavn = request.form.get('brukernavn', '')
+        passord = request.form.get('passord', '')
+        user = User.query.filter_by(brukernavn=brukernavn).first()
+        if user and user.sjekk_passord(passord):
+            login_user(user)
+            return redirect(url_for('index'))
+        return render_template('login.html', feil='Feil brukernavn eller passord')
+    return render_template('login.html')
+
+
+@app.route('/logg-ut')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
 
 @app.route('/sjekkliste/<sjekkliste_type>')
+@login_required
 def sjekkliste_side(sjekkliste_type):
     return render_template('sjekkliste.html', sjekkliste_type=sjekkliste_type)
 
 
 @app.route('/historikk')
+@login_required
 def historikk_side():
     return render_template('historikk.html')
+
+
+@app.route('/admin')
+@login_required
+def admin_side():
+    if not current_user.er_admin:
+        return redirect(url_for('index'))
+    return render_template('admin.html')
+
+
+@app.route('/api/admin/brukere', methods=['GET'])
+@login_required
+def hent_brukere():
+    if not current_user.er_admin:
+        return jsonify({"error": "Ingen tilgang"}), 403
+    brukere = User.query.all()
+    return jsonify({"success": True, "brukere": [
+        {"id": u.id, "brukernavn": u.brukernavn, "navn": u.navn, "er_admin": u.er_admin}
+        for u in brukere
+    ]})
+
+
+@app.route('/api/admin/bruker', methods=['POST'])
+@login_required
+def opprett_bruker():
+    if not current_user.er_admin:
+        return jsonify({"error": "Ingen tilgang"}), 403
+    data = request.get_json()
+    if User.query.filter_by(brukernavn=data['brukernavn']).first():
+        return jsonify({"success": False, "error": "Brukernavn finnes allerede"}), 400
+    u = User(brukernavn=data['brukernavn'], navn=data.get('navn', ''), er_admin=data.get('er_admin', False))
+    u.sett_passord(data['passord'])
+    db.session.add(u)
+    db.session.commit()
+    return jsonify({"success": True, "message": f"Bruker '{data['brukernavn']}' opprettet"})
+
+
+@app.route('/api/admin/bruker/<int:uid>', methods=['DELETE'])
+@login_required
+def slett_bruker(uid):
+    if not current_user.er_admin:
+        return jsonify({"error": "Ingen tilgang"}), 403
+    u = User.query.get(uid)
+    if not u:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+    if u.brukernavn == 'admin':
+        return jsonify({"success": False, "error": "Kan ikke slette admin"}), 400
+    db.session.delete(u)
+    db.session.commit()
+    return jsonify({"success": True})
 
 
 # ============================================================================

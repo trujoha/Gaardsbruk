@@ -41,6 +41,13 @@
         </div>
         <div class="sjekkliste-grid" id="sjekklister"></div>
         <a href="/historikk" class="historikk-link">📋 Se tidligere revisjoner</a>
+        {% if current_user.er_admin %}
+        <a href="/admin" class="historikk-link" style="margin-top: 10px; background: #fff3e0; color: #e65100;">⚙️ Administrasjon</a>
+        {% endif %}
+        <div style="text-align: center; margin-top: 16px;">
+            <span style="font-size: 0.85em; color: #888;">Innlogget som: {{ current_user.navn }}</span>
+            <a href="/logg-ut" style="margin-left: 12px; color: #c62828; font-size: 0.85em; font-weight: 600;">Logg ut</a>
+        </div>
     </div>
     <script>
         fetch('/api/sjekklister').then(r => r.json()).then(data => {

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaardsbruk - Logg inn</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(160deg, #1b5e20 0%, #2e7d32 30%, #388e3c 50%, #43a047 70%, #1b5e20 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+        /* Natur-effekter */
+        body::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(255,235,59,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(139,195,74,0.1) 0%, transparent 40%),
+                radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.15) 0%, transparent 70%);
+            z-index: 0;
+        }
+        /* Dekorative elementer */
+        .deko-aaker {
+            position: absolute; bottom: -10px; left: 0; right: 0; height: 120px; z-index: 0;
+            background: linear-gradient(transparent 0%, rgba(27,94,32,0.4) 100%);
+        }
+        .login-page { position: relative; z-index: 1; text-align: center; width: 100%; max-width: 420px; padding: 20px; }
+        .logo-section { margin-bottom: 24px; }
+        .logo-section .emoji { font-size: 4em; margin-bottom: 8px; display: block; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); }
+        .logo-section h1 { color: white; font-size: 2.4em; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .logo-section p { color: #a5d6a7; font-size: 0.95em; margin-top: 4px; }
+        .login-card {
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            border-radius: 20px; padding: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .login-card h2 { color: #2e7d32; font-size: 1.2em; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; text-align: left; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 6px; color: #333; font-size: 0.9em; }
+        .form-group input {
+            width: 100%; padding: 14px; border: 2px solid #c8e6c9; border-radius: 12px;
+            font-size: 1em; font-family: inherit; transition: border-color 0.2s; background: #f1f8e9;
+        }
+        .form-group input:focus { outline: none; border-color: #2e7d32; background: white; }
+        .login-btn {
+            width: 100%; padding: 14px; background: #2e7d32; color: white; border: none;
+            border-radius: 12px; font-size: 1.05em; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: background 0.2s; margin-top: 4px;
+        }
+        .login-btn:hover { background: #1b5e20; }
+        .error-msg { background: #ffebee; color: #c62828; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9em; font-weight: 500; }
+        .footer { color: #a5d6a7; font-size: 0.75em; margin-top: 20px; }
+        @media (max-width: 480px) {
+            .logo-section h1 { font-size: 1.8em; }
+            .login-card { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="deko-aaker"></div>
+    <div class="login-page">
+        <div class="logo-section">
+            <span class="emoji">🌾</span>
+            <h1>Gaardsbruk</h1>
+            <p>Digital kvalitetsstyring for gardsbruk</p>
+        </div>
+        <div class="login-card">
+            <h2>Logg inn</h2>
+            {% if feil %}
+            <div class="error-msg">{{ feil }}</div>
+            {% endif %}
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label>Brukernavn</label>
+                    <input type="text" name="brukernavn" required autofocus placeholder="Skriv inn brukernavn">
+                </div>
+                <div class="form-group">
+                    <label>Passord</label>
+                    <input type="password" name="passord" required placeholder="Skriv inn passord">
+                </div>
+                <button type="submit" class="login-btn">Logg inn</button>
+            </form>
+        </div>
+        <p class="footer">Gaardsbruk &copy; 2026</p>
+    </div>
+</body>
+</html>
