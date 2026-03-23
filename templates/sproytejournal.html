@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sproytejournal - Gaardsbruk</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f0f4e8; color: #333; min-height: 100vh; }
+        .header { background: #2e7d32; color: white; padding: 20px 24px; display: flex; align-items: center; gap: 16px; }
+        .header a { color: white; text-decoration: none; font-size: 1.4em; }
+        .header h1 { font-size: 1.3em; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .form-card { background: white; border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .form-card h2 { color: #2e7d32; font-size: 1em; margin-bottom: 14px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .form-row.full { grid-template-columns: 1fr; }
+        .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+        label { font-size: 0.8em; font-weight: 600; color: #555; display: block; margin-bottom: 3px; }
+        input, select, textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 0.9em; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #2e7d32; }
+        textarea { resize: vertical; min-height: 60px; }
+        .btn { width: 100%; padding: 12px; background: #2e7d32; color: white; border: none; border-radius: 10px; font-size: 1em; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn:hover { background: #256428; }
+        .entry { background: white; border-radius: 14px; padding: 16px; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-left: 4px solid #f57f17; position: relative; }
+        .entry-dato { font-size: 0.78em; color: #888; margin-bottom: 4px; }
+        .entry-title { font-weight: 700; font-size: 0.95em; }
+        .entry-detail { font-size: 0.82em; color: #666; margin-top: 4px; }
+        .entry-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+        .entry-tags span { font-size: 0.75em; background: #fff3e0; padding: 2px 8px; border-radius: 6px; font-weight: 600; color: #e65100; }
+        .entry-delete { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #c62828; cursor: pointer; font-size: 1.1em; }
+        .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/">&larr;</a>
+        <h1>Sproytejournal</h1>
+    </div>
+    <div class="container">
+        <div class="form-card">
+            <h2>Ny registrering</h2>
+            <form id="skjema" onsubmit="return lagre(event)">
+                <div class="form-row">
+                    <div><label>Dato</label><input type="date" id="dato" required></div>
+                    <div><label>Skifte</label><input type="text" id="skifte" placeholder="Skifte/teig"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Preparat</label><input type="text" id="preparat" placeholder="Preparatnavn" required></div>
+                    <div><label>Areal (daa)</label><input type="number" step="0.1" id="areal_daa" value="0"></div>
+                </div>
+                <div class="form-row triple">
+                    <div><label>Dose/daa</label><input type="number" step="0.01" id="dose_per_daa" value="0"></div>
+                    <div><label>Total mengde</label><input type="number" step="0.1" id="total_mengde" value="0"></div>
+                    <div><label>Enhet</label>
+                        <select id="enhet">
+                            <option value="ml">ml</option>
+                            <option value="g">g</option>
+                            <option value="liter">liter</option>
+                            <option value="kg">kg</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div><label>Vekst (kultur)</label><input type="text" id="vekst" placeholder="F.eks. bygg, hvete"></div>
+                    <div><label>Skadegjorer</label><input type="text" id="skadegjorer" placeholder="Ugras, sopp, skadedyr"></div>
+                </div>
+                <div class="form-row triple">
+                    <div><label>Vaer</label><input type="text" id="vaer" placeholder="Sol, sky"></div>
+                    <div><label>Temperatur</label><input type="number" step="0.1" id="temperatur" placeholder="grader C"></div>
+                    <div><label>Vind</label><input type="text" id="vind" placeholder="Svak, moderat"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Behandlingsfrist (dager)</label><input type="number" id="behandlingsfrist" value="0"></div>
+                    <div></div>
+                </div>
+                <div class="form-row full">
+                    <div><label>Notat</label><textarea id="notat" placeholder="Ev. merknad"></textarea></div>
+                </div>
+                <button type="submit" class="btn">Lagre</button>
+            </form>
+        </div>
+        <div id="liste"></div>
+    </div>
+    <script>
+        document.getElementById('dato').valueAsDate = new Date();
+        function lastInn() {
+            fetch('/api/sproytejournal').then(r=>r.json()).then(data=>{
+                var div = document.getElementById('liste');
+                if (!data.data.length) { div.innerHTML='<div class="empty">Ingen registreringer ennaa</div>'; return; }
+                div.innerHTML = data.data.map(o =>
+                    '<div class="entry">' +
+                    '<button class="entry-delete" onclick="slett('+o.id+')">&times;</button>' +
+                    '<div class="entry-dato">'+o.dato+'</div>' +
+                    '<div class="entry-title">'+o.preparat+' &mdash; '+o.skifte+'</div>' +
+                    '<div class="entry-detail">'+o.dose_per_daa+' '+o.enhet+'/daa | Totalt: '+o.total_mengde+' '+o.enhet+' | '+o.areal_daa+' daa</div>' +
+                    '<div class="entry-tags">' +
+                    (o.vekst ? '<span>'+o.vekst+'</span>' : '') +
+                    (o.skadegjorer ? '<span>'+o.skadegjorer+'</span>' : '') +
+                    (o.vaer ? '<span>'+o.vaer+'</span>' : '') +
+                    (o.temperatur !== null ? '<span>'+o.temperatur+'&deg;C</span>' : '') +
+                    (o.behandlingsfrist ? '<span>Frist: '+o.behandlingsfrist+' d</span>' : '') +
+                    '</div>' +
+                    (o.notat ? '<div class="entry-detail" style="margin-top:6px;font-style:italic;">'+o.notat+'</div>' : '') +
+                    '</div>'
+                ).join('');
+            });
+        }
+        function lagre(e) {
+            e.preventDefault();
+            fetch('/api/sproytejournal', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    dato: document.getElementById('dato').value,
+                    skifte: document.getElementById('skifte').value,
+                    areal_daa: document.getElementById('areal_daa').value,
+                    preparat: document.getElementById('preparat').value,
+                    dose_per_daa: document.getElementById('dose_per_daa').value,
+                    total_mengde: document.getElementById('total_mengde').value,
+                    enhet: document.getElementById('enhet').value,
+                    vekst: document.getElementById('vekst').value,
+                    skadegjorer: document.getElementById('skadegjorer').value,
+                    vaer: document.getElementById('vaer').value,
+                    temperatur: document.getElementById('temperatur').value,
+                    vind: document.getElementById('vind').value,
+                    behandlingsfrist: document.getElementById('behandlingsfrist').value,
+                    notat: document.getElementById('notat').value,
+                })
+            }).then(r=>r.json()).then(()=>{ document.getElementById('skjema').reset(); document.getElementById('dato').valueAsDate=new Date(); lastInn(); });
+            return false;
+        }
+        function slett(id) {
+            if (!confirm('Slette registrering?')) return;
+            fetch('/api/sproytejournal/'+id, {method:'DELETE'}).then(()=>lastInn());
+        }
+        lastInn();
+    </script>
+</body>
+</html>

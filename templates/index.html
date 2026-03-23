@@ -15,7 +15,21 @@
         .gaard-info { background: white; border-radius: 14px; padding: 18px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); text-align: center; }
         .gaard-info h2 { color: #2e7d32; font-size: 1.1em; }
         .gaard-info p { font-size: 0.85em; color: #888; }
-        .sjekkliste-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .section-title { font-size: 0.8em; font-weight: 700; color: #2e7d32; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px 4px; }
+
+        .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+        .feature-kort {
+            background: white; border-radius: 14px; padding: 16px; text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s;
+            text-decoration: none; color: inherit; border-left: 4px solid #2e7d32;
+        }
+        .feature-kort:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .feature-kort .ikon { font-size: 1.8em; margin-bottom: 6px; }
+        .feature-kort .navn { font-weight: 700; font-size: 0.85em; margin-bottom: 2px; }
+        .feature-kort .desc { font-size: 0.72em; color: #888; }
+
+        .sjekkliste-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .sjekkliste-kort {
             background: white; border-radius: 14px; padding: 20px; text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s;
@@ -25,13 +39,14 @@
         .sjekkliste-kort .ikon { font-size: 2em; margin-bottom: 8px; }
         .sjekkliste-kort .navn { font-weight: 700; font-size: 0.9em; margin-bottom: 4px; }
         .sjekkliste-kort .antall { font-size: 0.78em; color: #888; }
-        .historikk-link { display: block; text-align: center; margin-top: 20px; padding: 14px; background: white; border-radius: 14px; color: #2e7d32; font-weight: 600; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+
+        .historikk-link { display: block; text-align: center; margin-top: 10px; padding: 14px; background: white; border-radius: 14px; color: #2e7d32; font-weight: 600; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
         .historikk-link:hover { background: #2e7d32; color: white; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🌿 Gaardsbruk</h1>
+        <h1>Gaardsbruk</h1>
         <p>Digital kvalitetsstyring for gardsbruk</p>
     </div>
     <div class="container">
@@ -39,10 +54,67 @@
             <h2>Demo Gaard</h2>
             <p>Org.nr: 999 888 777 | Gardsvegen 1, 2390 Moelv</p>
         </div>
+
+        <!-- Journaler -->
+        <div class="section-title">Journaler</div>
+        <div class="feature-grid">
+            <a href="/gjodseljournal" class="feature-kort" style="border-left-color:#2e7d32;">
+                <div class="ikon">&#x1F33E;</div>
+                <div class="navn">Gjodseljournal</div>
+                <div class="desc">Gjodslingsplan og registrering</div>
+            </a>
+            <a href="/sproytejournal" class="feature-kort" style="border-left-color:#f57f17;">
+                <div class="ikon">&#x1F9EA;</div>
+                <div class="navn">Sproytejournal</div>
+                <div class="desc">Plantevernmidler og sproyting</div>
+            </a>
+        </div>
+
+        <!-- Dyrehold -->
+        <div class="section-title">Dyrehold</div>
+        <div class="feature-grid">
+            <a href="/dyrehold" class="feature-kort" style="border-left-color:#7b1fa2;">
+                <div class="ikon">&#x1F404;</div>
+                <div class="navn">Dyrehold-logg</div>
+                <div class="desc">Hendelser, medisin, veterinaer</div>
+            </a>
+            <a href="/oppsynslogg" class="feature-kort" style="border-left-color:#1565c0;">
+                <div class="ikon">&#x1F9D1;&#x200D;&#x1F33E;</div>
+                <div class="navn">Oppsynslogg</div>
+                <div class="desc">Beitetilsyn og observasjoner</div>
+            </a>
+        </div>
+
+        <!-- Drift -->
+        <div class="section-title">Drift</div>
+        <div class="feature-grid">
+            <a href="/vedlikehold" class="feature-kort" style="border-left-color:#455a64;">
+                <div class="ikon">&#x1F527;</div>
+                <div class="navn">Vedlikehold</div>
+                <div class="desc">Maskiner, service, kostnader</div>
+            </a>
+            <a href="/avfall" class="feature-kort" style="border-left-color:#ef6c00;">
+                <div class="ikon">&#x267B;&#xFE0F;</div>
+                <div class="navn">Avfallslogg</div>
+                <div class="desc">Avfallshaandtering og levering</div>
+            </a>
+            <a href="/kjorebok" class="feature-kort" style="border-left-color:#2e7d32;">
+                <div class="ikon">&#x1F697;</div>
+                <div class="navn">Kjorebok</div>
+                <div class="desc">Kjorte km, gaard og privat</div>
+            </a>
+        </div>
+
+        <!-- Sjekklister -->
+        <div class="section-title">Sjekklister</div>
         <div class="sjekkliste-grid" id="sjekklister"></div>
-        <a href="/historikk" class="historikk-link">📋 Se tidligere revisjoner</a>
+
+        <!-- Historikk -->
+        <div class="section-title">Historikk</div>
+        <a href="/historikk" class="historikk-link">Se tidligere revisjoner</a>
+
         {% if current_user.er_admin %}
-        <a href="/admin" class="historikk-link" style="margin-top: 10px; background: #fff3e0; color: #e65100;">⚙️ Administrasjon</a>
+        <a href="/admin" class="historikk-link" style="margin-top: 10px; background: #fff3e0; color: #e65100;">Administrasjon</a>
         {% endif %}
         <div style="text-align: center; margin-top: 16px;">
             <span style="font-size: 0.85em; color: #888;">Innlogget som: {{ current_user.navn }}</span>

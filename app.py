@@ -6,7 +6,7 @@ from flask import Flask, render_template, jsonify, request, send_file, redirect,
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import json
 import os
 import uuid
@@ -80,6 +80,110 @@ class SjekklisteSvar(db.Model):
     kommentar = db.Column(db.Text, default='')
     bilde_sti = db.Column(db.String(500), default='')
     besvart = db.Column(db.DateTime, default=datetime.now)
+
+
+class GjodselJournal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    skifte = db.Column(db.String(100))
+    areal_daa = db.Column(db.Float, default=0)
+    gjodseltype = db.Column(db.String(100))
+    mengde = db.Column(db.Float, default=0)
+    enhet = db.Column(db.String(20))
+    nitrogen_kg = db.Column(db.Float, default=0)
+    fosfor_kg = db.Column(db.Float, default=0)
+    kalium_kg = db.Column(db.Float, default=0)
+    metode = db.Column(db.String(100))
+    vaer = db.Column(db.String(50))
+    notat = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class SproyteJournal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    skifte = db.Column(db.String(100))
+    areal_daa = db.Column(db.Float, default=0)
+    preparat = db.Column(db.String(200))
+    dose_per_daa = db.Column(db.Float, default=0)
+    total_mengde = db.Column(db.Float, default=0)
+    enhet = db.Column(db.String(20))
+    vekst = db.Column(db.String(100))
+    skadegjorer = db.Column(db.String(200))
+    vaer = db.Column(db.String(50))
+    temperatur = db.Column(db.Float, nullable=True)
+    vind = db.Column(db.String(50))
+    behandlingsfrist = db.Column(db.Integer, default=0)
+    notat = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class DyreholdLogg(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    dyr_id = db.Column(db.String(50))
+    dyreart = db.Column(db.String(50))
+    hendelse = db.Column(db.String(50))
+    beskrivelse = db.Column(db.Text, default='')
+    medisin = db.Column(db.String(200), default='')
+    tilbakeholdelse_dager = db.Column(db.Integer, default=0)
+    veteriner = db.Column(db.String(100), default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class VedlikeholdsLogg(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    maskin = db.Column(db.String(200))
+    type_vedlikehold = db.Column(db.String(50))
+    beskrivelse = db.Column(db.Text, default='')
+    kostnad = db.Column(db.Float, default=0)
+    utfort_av = db.Column(db.String(100), default='')
+    neste_service = db.Column(db.Date, nullable=True)
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class AvfallsLogg(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    avfallstype = db.Column(db.String(100))
+    mengde = db.Column(db.Float, default=0)
+    enhet = db.Column(db.String(20))
+    mottaker = db.Column(db.String(200), default='')
+    notat = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class Oppsynslogg(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    sted = db.Column(db.String(200))
+    km_tur_retur = db.Column(db.Float, default=0)
+    timer = db.Column(db.Float, default=0)
+    antall_dyr_sett = db.Column(db.Integer, default=0)
+    observasjoner = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
+
+
+class Kjorebok(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gaard_id = db.Column(db.Integer, default=1)
+    dato = db.Column(db.Date, nullable=False)
+    formaal = db.Column(db.String(200))
+    fra_sted = db.Column(db.String(200), default='')
+    til_sted = db.Column(db.String(200), default='')
+    km_start = db.Column(db.Float, default=0)
+    km_slutt = db.Column(db.Float, default=0)
+    distanse = db.Column(db.Float, default=0)
+    type_kjoering = db.Column(db.String(20), default='gaard')
+    notat = db.Column(db.Text, default='')
+    opprettet = db.Column(db.DateTime, default=datetime.now)
 
 
 # ============================================================================
@@ -297,6 +401,428 @@ def slett_bruker(uid):
     db.session.delete(u)
     db.session.commit()
     return jsonify({"success": True})
+
+
+# ============================================================================
+# JOURNAL-SIDER
+# ============================================================================
+
+@app.route('/gjodseljournal')
+@login_required
+def gjodseljournal_side():
+    return render_template('gjodseljournal.html')
+
+
+@app.route('/sproytejournal')
+@login_required
+def sproytejournal_side():
+    return render_template('sproytejournal.html')
+
+
+@app.route('/dyrehold')
+@login_required
+def dyrehold_side():
+    return render_template('dyrehold.html')
+
+
+@app.route('/vedlikehold')
+@login_required
+def vedlikehold_side():
+    return render_template('vedlikehold.html')
+
+
+@app.route('/avfall')
+@login_required
+def avfall_side():
+    return render_template('avfall.html')
+
+
+@app.route('/oppsynslogg')
+@login_required
+def oppsynslogg_side():
+    return render_template('oppsynslogg.html')
+
+
+@app.route('/kjorebok')
+@login_required
+def kjorebok_side():
+    return render_template('kjorebok.html')
+
+
+# ============================================================================
+# JOURNAL API-er
+# ============================================================================
+
+# --- Gjodseljournal ---
+@app.route('/api/gjodseljournal', methods=['GET'])
+@login_required
+def hent_gjodseljournal():
+    q = GjodselJournal.query
+    fra = request.args.get('fra')
+    til = request.args.get('til')
+    if fra:
+        q = q.filter(GjodselJournal.dato >= date.fromisoformat(fra))
+    if til:
+        q = q.filter(GjodselJournal.dato <= date.fromisoformat(til))
+    oppf = q.order_by(GjodselJournal.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "skifte": o.skifte, "areal_daa": o.areal_daa,
+        "gjodseltype": o.gjodseltype, "mengde": o.mengde, "enhet": o.enhet,
+        "nitrogen_kg": o.nitrogen_kg, "fosfor_kg": o.fosfor_kg, "kalium_kg": o.kalium_kg,
+        "metode": o.metode, "vaer": o.vaer, "notat": o.notat
+    } for o in oppf]})
+
+
+@app.route('/api/gjodseljournal', methods=['POST'])
+@login_required
+def ny_gjodseljournal():
+    d = request.get_json()
+    o = GjodselJournal(
+        dato=date.fromisoformat(d['dato']), skifte=d.get('skifte', ''),
+        areal_daa=float(d.get('areal_daa', 0)), gjodseltype=d.get('gjodseltype', ''),
+        mengde=float(d.get('mengde', 0)), enhet=d.get('enhet', 'kg'),
+        nitrogen_kg=float(d.get('nitrogen_kg', 0)), fosfor_kg=float(d.get('fosfor_kg', 0)),
+        kalium_kg=float(d.get('kalium_kg', 0)), metode=d.get('metode', ''),
+        vaer=d.get('vaer', ''), notat=d.get('notat', '')
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/gjodseljournal/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_gjodseljournal(oid):
+    o = GjodselJournal.query.get(oid)
+    if not o:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Sproytejournal ---
+@app.route('/api/sproytejournal', methods=['GET'])
+@login_required
+def hent_sproytejournal():
+    q = SproyteJournal.query
+    fra = request.args.get('fra')
+    til = request.args.get('til')
+    if fra:
+        q = q.filter(SproyteJournal.dato >= date.fromisoformat(fra))
+    if til:
+        q = q.filter(SproyteJournal.dato <= date.fromisoformat(til))
+    oppf = q.order_by(SproyteJournal.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "skifte": o.skifte, "areal_daa": o.areal_daa,
+        "preparat": o.preparat, "dose_per_daa": o.dose_per_daa, "total_mengde": o.total_mengde,
+        "enhet": o.enhet, "vekst": o.vekst, "skadegjorer": o.skadegjorer,
+        "vaer": o.vaer, "temperatur": o.temperatur, "vind": o.vind,
+        "behandlingsfrist": o.behandlingsfrist, "notat": o.notat
+    } for o in oppf]})
+
+
+@app.route('/api/sproytejournal', methods=['POST'])
+@login_required
+def ny_sproytejournal():
+    d = request.get_json()
+    o = SproyteJournal(
+        dato=date.fromisoformat(d['dato']), skifte=d.get('skifte', ''),
+        areal_daa=float(d.get('areal_daa', 0)), preparat=d.get('preparat', ''),
+        dose_per_daa=float(d.get('dose_per_daa', 0)), total_mengde=float(d.get('total_mengde', 0)),
+        enhet=d.get('enhet', 'ml'), vekst=d.get('vekst', ''),
+        skadegjorer=d.get('skadegjorer', ''), vaer=d.get('vaer', ''),
+        temperatur=float(d['temperatur']) if d.get('temperatur') else None,
+        vind=d.get('vind', ''), behandlingsfrist=int(d.get('behandlingsfrist', 0)),
+        notat=d.get('notat', '')
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/sproytejournal/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_sproytejournal(oid):
+    o = SproyteJournal.query.get(oid)
+    if not o:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Dyrehold ---
+@app.route('/api/dyrehold', methods=['GET'])
+@login_required
+def hent_dyrehold():
+    q = DyreholdLogg.query
+    fra = request.args.get('fra')
+    til = request.args.get('til')
+    if fra:
+        q = q.filter(DyreholdLogg.dato >= date.fromisoformat(fra))
+    if til:
+        q = q.filter(DyreholdLogg.dato <= date.fromisoformat(til))
+    oppf = q.order_by(DyreholdLogg.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "dyr_id": o.dyr_id,
+        "dyreart": o.dyreart, "hendelse": o.hendelse, "beskrivelse": o.beskrivelse,
+        "medisin": o.medisin, "tilbakeholdelse_dager": o.tilbakeholdelse_dager,
+        "veteriner": o.veteriner
+    } for o in oppf]})
+
+
+@app.route('/api/dyrehold', methods=['POST'])
+@login_required
+def ny_dyrehold():
+    d = request.get_json()
+    o = DyreholdLogg(
+        dato=date.fromisoformat(d['dato']), dyr_id=d.get('dyr_id', ''),
+        dyreart=d.get('dyreart', ''), hendelse=d.get('hendelse', ''),
+        beskrivelse=d.get('beskrivelse', ''), medisin=d.get('medisin', ''),
+        tilbakeholdelse_dager=int(d.get('tilbakeholdelse_dager', 0)),
+        veteriner=d.get('veteriner', '')
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/dyrehold/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_dyrehold(oid):
+    o = DyreholdLogg.query.get(oid)
+    if not o:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Vedlikehold ---
+@app.route('/api/vedlikehold', methods=['GET'])
+@login_required
+def hent_vedlikehold():
+    q = VedlikeholdsLogg.query
+    fra = request.args.get('fra')
+    til = request.args.get('til')
+    if fra:
+        q = q.filter(VedlikeholdsLogg.dato >= date.fromisoformat(fra))
+    if til:
+        q = q.filter(VedlikeholdsLogg.dato <= date.fromisoformat(til))
+    oppf = q.order_by(VedlikeholdsLogg.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "maskin": o.maskin,
+        "type_vedlikehold": o.type_vedlikehold, "beskrivelse": o.beskrivelse,
+        "kostnad": o.kostnad, "utfort_av": o.utfort_av,
+        "neste_service": o.neste_service.isoformat() if o.neste_service else ''
+    } for o in oppf]})
+
+
+@app.route('/api/vedlikehold', methods=['POST'])
+@login_required
+def ny_vedlikehold():
+    d = request.get_json()
+    o = VedlikeholdsLogg(
+        dato=date.fromisoformat(d['dato']), maskin=d.get('maskin', ''),
+        type_vedlikehold=d.get('type_vedlikehold', ''), beskrivelse=d.get('beskrivelse', ''),
+        kostnad=float(d.get('kostnad', 0)), utfort_av=d.get('utfort_av', ''),
+        neste_service=date.fromisoformat(d['neste_service']) if d.get('neste_service') else None
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/vedlikehold/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_vedlikehold(oid):
+    o = VedlikeholdsLogg.query.get(oid)
+    if not o:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Avfall ---
+@app.route('/api/avfall', methods=['GET'])
+@login_required
+def hent_avfall():
+    q = AvfallsLogg.query
+    fra = request.args.get('fra')
+    til = request.args.get('til')
+    if fra:
+        q = q.filter(AvfallsLogg.dato >= date.fromisoformat(fra))
+    if til:
+        q = q.filter(AvfallsLogg.dato <= date.fromisoformat(til))
+    oppf = q.order_by(AvfallsLogg.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "avfallstype": o.avfallstype,
+        "mengde": o.mengde, "enhet": o.enhet, "mottaker": o.mottaker, "notat": o.notat
+    } for o in oppf]})
+
+
+@app.route('/api/avfall', methods=['POST'])
+@login_required
+def ny_avfall():
+    d = request.get_json()
+    o = AvfallsLogg(
+        dato=date.fromisoformat(d['dato']), avfallstype=d.get('avfallstype', ''),
+        mengde=float(d.get('mengde', 0)), enhet=d.get('enhet', 'kg'),
+        mottaker=d.get('mottaker', ''), notat=d.get('notat', '')
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/avfall/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_avfall(oid):
+    o = AvfallsLogg.query.get(oid)
+    if not o:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Oppsynslogg ---
+@app.route('/api/oppsynslogg', methods=['GET'])
+@login_required
+def hent_oppsynslogg():
+    q = Oppsynslogg.query
+    fra = request.args.get('fra')
+    til = request.args.get('til')
+    if fra:
+        q = q.filter(Oppsynslogg.dato >= date.fromisoformat(fra))
+    if til:
+        q = q.filter(Oppsynslogg.dato <= date.fromisoformat(til))
+    oppf = q.order_by(Oppsynslogg.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "sted": o.sted,
+        "km_tur_retur": o.km_tur_retur, "timer": o.timer,
+        "antall_dyr_sett": o.antall_dyr_sett, "observasjoner": o.observasjoner
+    } for o in oppf]})
+
+
+@app.route('/api/oppsynslogg', methods=['POST'])
+@login_required
+def ny_oppsynslogg():
+    d = request.get_json()
+    o = Oppsynslogg(
+        dato=date.fromisoformat(d['dato']), sted=d.get('sted', ''),
+        km_tur_retur=float(d.get('km_tur_retur', 0)), timer=float(d.get('timer', 0)),
+        antall_dyr_sett=int(d.get('antall_dyr_sett', 0)),
+        observasjoner=d.get('observasjoner', '')
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/oppsynslogg/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_oppsynslogg(oid):
+    o = Oppsynslogg.query.get(oid)
+    if not o:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route('/api/oppsynslogg/oppsummering', methods=['GET'])
+@login_required
+def oppsynslogg_oppsummering():
+    periode = request.args.get('periode', 'sesong')
+    i_dag = date.today()
+    if periode == 'dag':
+        start = i_dag
+    elif periode == 'uke':
+        start = i_dag - timedelta(days=i_dag.weekday())
+    elif periode == 'maaned':
+        start = i_dag.replace(day=1)
+    else:  # sesong (1. mai - 31. okt)
+        if i_dag.month >= 5:
+            start = i_dag.replace(month=5, day=1)
+        else:
+            start = i_dag.replace(year=i_dag.year - 1, month=5, day=1)
+    oppf = Oppsynslogg.query.filter(Oppsynslogg.dato >= start).all()
+    return jsonify({"success": True, "periode": periode, "fra": start.isoformat(), "oppsummering": {
+        "antall_turer": len(oppf),
+        "total_km": sum(o.km_tur_retur for o in oppf),
+        "total_timer": sum(o.timer for o in oppf),
+        "total_dyr_sett": sum(o.antall_dyr_sett for o in oppf),
+    }})
+
+
+# --- Kjorebok ---
+@app.route('/api/kjorebok', methods=['GET'])
+@login_required
+def hent_kjorebok():
+    q = Kjorebok.query
+    fra = request.args.get('fra')
+    til = request.args.get('til')
+    if fra:
+        q = q.filter(Kjorebok.dato >= date.fromisoformat(fra))
+    if til:
+        q = q.filter(Kjorebok.dato <= date.fromisoformat(til))
+    oppf = q.order_by(Kjorebok.dato.desc()).all()
+    return jsonify({"success": True, "data": [{
+        "id": o.id, "dato": o.dato.isoformat(), "formaal": o.formaal,
+        "fra_sted": o.fra_sted, "til_sted": o.til_sted,
+        "km_start": o.km_start, "km_slutt": o.km_slutt, "distanse": o.distanse,
+        "type_kjoering": o.type_kjoering, "notat": o.notat
+    } for o in oppf]})
+
+
+@app.route('/api/kjorebok', methods=['POST'])
+@login_required
+def ny_kjorebok():
+    d = request.get_json()
+    o = Kjorebok(
+        dato=date.fromisoformat(d['dato']), formaal=d.get('formaal', ''),
+        fra_sted=d.get('fra_sted', ''), til_sted=d.get('til_sted', ''),
+        km_start=float(d.get('km_start', 0)), km_slutt=float(d.get('km_slutt', 0)),
+        distanse=float(d.get('distanse', 0)), type_kjoering=d.get('type_kjoering', 'gaard'),
+        notat=d.get('notat', '')
+    )
+    db.session.add(o)
+    db.session.commit()
+    return jsonify({"success": True, "id": o.id})
+
+
+@app.route('/api/kjorebok/<int:oid>', methods=['DELETE'])
+@login_required
+def slett_kjorebok(oid):
+    o = Kjorebok.query.get(oid)
+    if not o:
+        return jsonify({"success": False, "error": "Ikke funnet"}), 404
+    db.session.delete(o)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route('/api/kjorebok/oppsummering', methods=['GET'])
+@login_required
+def kjorebok_oppsummering():
+    periode = request.args.get('periode', 'maaned')
+    i_dag = date.today()
+    if periode == 'maaned':
+        start = i_dag.replace(day=1)
+    else:  # aar
+        start = i_dag.replace(month=1, day=1)
+    oppf = Kjorebok.query.filter(Kjorebok.dato >= start).all()
+    gaard_km = sum(o.distanse for o in oppf if o.type_kjoering == 'gaard')
+    privat_km = sum(o.distanse for o in oppf if o.type_kjoering == 'privat')
+    return jsonify({"success": True, "periode": periode, "fra": start.isoformat(), "oppsummering": {
+        "antall_turer": len(oppf),
+        "total_km": gaard_km + privat_km,
+        "gaard_km": gaard_km,
+        "privat_km": privat_km,
+    }})
 
 
 # ============================================================================
