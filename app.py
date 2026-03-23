@@ -399,10 +399,15 @@ with app.app_context():
     db.create_all()
     # Migrer: legg til er_aktor kolonne hvis den mangler
     try:
-        db.session.execute(db.text("ALTER TABLE user ADD COLUMN er_aktor BOOLEAN DEFAULT 0"))
-        db.session.commit()
+        db.session.execute(db.text("SELECT er_aktor FROM \"user\" LIMIT 1"))
+        db.session.rollback()
     except Exception:
         db.session.rollback()
+        try:
+            db.session.execute(db.text("ALTER TABLE \"user\" ADD COLUMN er_aktor BOOLEAN DEFAULT FALSE"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     if User.query.count() == 0:
         admin = User(brukernavn='admin', navn='Administrator', er_admin=True)
         admin.sett_passord('Gaardsbruk2026!')
