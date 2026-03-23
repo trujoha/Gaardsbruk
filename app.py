@@ -354,6 +354,7 @@ def historikk_side():
 
 
 @app.route('/pitch')
+@login_required
 def pitch_side():
     return render_template('pitch.html')
 
